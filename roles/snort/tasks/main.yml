@@ -1,0 +1,113 @@
+---
+# tasks file for snort
+- name: Update and upgrade apt packages
+  apt:
+    upgrade: yes
+    update_cache: yes
+- name: Install dependency packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ dependency_packages }}"
+- name: Create temporary directory
+  file:
+    path: ~/snort_src
+    state: directory
+    mode: '0755'
+  become: false
+- name: Download DAQ tarfile
+  get_url: 
+    url: https://www.snort.org/downloads/snort/daq-2.0.7.tar.gz
+    dest: ~/snort_src
+  become: false
+- name: Extract DAQ tarfile file
+  unarchive: 
+    src: ~/snort_src/daq-2.0.7.tar.gz
+    dest: ~/snort_src/
+    remote_src: yes
+  become: false
+- name: cd into the extracted directory, auto-reconfigure DAQ
+  shell: |
+    cd ~/snort_src/daq-2.0.7
+    autoreconf -f -i
+    ./configure && make && sudo make install
+    cd ~
+  become: false
+- name: Download Snort source code
+  get_url: 
+    url: https://www.snort.org/downloads/snort/snort-2.9.20.tar.gz
+    dest: ~/snort_src
+  become: false
+- name: Extract Snort Source code file
+  unarchive: 
+    src: ~/snort_src/snort-2.9.20.tar.gz
+    dest: ~/snort_src/
+    remote_src: yes
+  become: false
+- name: cd into the extracted directory, configure Snort
+  shell: |
+    cd ~/snort_src/snort-2.9.20
+    ./configure --enable-sourcefire && make && sudo make install
+  become: false
+
+- name: Update share libraries & symlinks
+  shell: |
+    ldconfig
+    ln -s /usr/local/bin/snort /usr/sbin/snort
+- name: Create snort group
+  group: 
+    name: snort
+    state: present
+- name : Create snort users
+  user:
+    name: snort
+    state: present
+    system: true
+    shell: /sbin/nologin
+    comment: SNORT_IDS
+    groups: snort
+    append: yes
+- name: Create Snort directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '5775'
+    owner: snort
+    group: snort
+  loop: "{{ directory_to_create }}"
+- name: Create Snort rules file
+  file: 
+    path: "{{ item }}"
+    state: touch
+  loop: "{{ file_to_create }}"
+- name: Copy Snort configuration file to etc directory
+  copy: 
+    src: "{{ item }}"
+    dest: /etc/snort
+    remote_src: yes
+  loop: "{{ file_to_copy }}"
+- name: Download Community Rules
+  get_url: 
+    url: https://www.snort.org/rules/community
+    dest: /home/vagrant/snort_src/community.tar.gz
+- name: Extract file
+  unarchive: 
+    src: /home/vagrant/snort_src/community.tar.gz
+    dest: /home/vagrant/snort_src/
+    remote_src: yes
+- name: Copy community rules to etc directory
+  copy: 
+    src: /home/vagrant/snort_src/community-rules/community.rules
+    dest: /etc/snort/rules
+    remote_src: yes
+- name: Edit Config file
+  shell: |
+    sed -i 's|include $RULE_PATH|#include $RULE_PATH|' /etc/snort/snort.conf
+    sed -i 's|ipvar HOME_NET any|ipvar HOME_NET 192.168.0.0/16|' /etc/snort/snort.conf
+    sed -i 's|var RULE_PATH ../rules|var RULE_PATH /etc/snort/rules|' /etc/snort/snort.conf
+    sed -i 's|var SO_RULE_PATH ../so_rules|var SO_RULE_PATH /etc/snort/so_rules|' /etc/snort/snort.conf
+    sed -i 's|var PREPROC_RULE_PATH ../preproc_rules|var PREPROC_RULE_PATH /etc/snort/preproc_rules|' /etc/snort/snort.conf
+    sed -i 's|var WHITE_LIST_PATH ../rules|var WHITE_LIST_PATH /etc/snort/rules|' /etc/snort/snort.conf
+    sed -i 's|var BLACK_LIST_PATH ../rules|var BLACK_LIST_PATH /etc/snort/rules|' /etc/snort/snort.conf
+    sed -i 's|# output unified2: filename merged.log, limit 128, nostamp, mpls_event_types, vlan_event_types|output unified2: filename snort.log, limit 128|' /etc/snort/snort.conf
+    sed -i 's|#include $RULE_PATH/local.rules|include $RULE_PATH/local.rules|' /etc/snort/snort.conf

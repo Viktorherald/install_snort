@@ -1,0 +1,6 @@
+---
+- name: Install and configure Snort
+  hosts: box1
+  become: true
+  roles:
+    - snort

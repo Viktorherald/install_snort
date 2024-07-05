@@ -1,0 +1,29 @@
+---
+dependency_packages: 
+  - gcc 
+  - libpcre3-dev 
+  - libluajit-5.1-dev 
+  - libpcap-dev 
+  - libnghttp2-dev 
+  - libdumbnet-dev 
+  - bison 
+  - flex 
+  - libdnet 
+  - autoconf 
+  - libtool
+directory_to_create: 
+    - /etc/snort/rules
+    - /var/log/snort
+    - /usr/local/lib/snort_dynamicrules
+file_to_create: 
+  - /etc/snort/rules/white_list.rules
+  - /etc/snort/rules/black_list.rules
+  - /etc/snort/rules/local.rules
+file_to_copy:
+  - /home/vagrant/snort_src/snort-2.9.20/etc/classification.config
+  - /home/vagrant/snort_src/snort-2.9.20/etc/reference.config 
+  - /home/vagrant/snort_src/snort-2.9.20/etc/threshold.conf
+  - /home/vagrant/snort_src/snort-2.9.20/etc/file_magic.conf
+  - /home/vagrant/snort_src/snort-2.9.20/etc/snort.conf
+  - /home/vagrant/snort_src/snort-2.9.20/etc/gen-msg.map
+  - /home/vagrant/snort_src/snort-2.9.20/etc/unicode.map
